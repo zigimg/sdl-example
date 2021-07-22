@@ -9,7 +9,6 @@ pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{});
     const sdk = sdl_sdk.init(b);
 
-
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
@@ -18,6 +17,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackagePath("zigimg", "zigimg/zigimg.zig");
+    exe.addPackagePath("clap", "zig-clap/clap.zig");
     exe.install();
 
     sdk.link(exe, .dynamic);
