@@ -98,30 +98,3 @@ const PixelMask = struct {
         }
     }
 };
-
-/// try to read all files in a directory as images and return the list of images
-/// if one file cannot be read by zigimg, the function returns an error
-pub fn openImagesFromDirectoryRelPath(allocator : *std.mem.Allocator, dir_path : [] const u8) ! []zigimg.image.Image {
-    var array_list = std.ArrayList(zigimg.image.Image).init(allocator);
-    defer array_list.deinit();
-
-    const dir = try std.fs.cwd().openDir(dir_path, .{.iterate = true});
-    var iter = dir.iterate();
-    while (try iter.next()) |entry| {
-        if (entry.kind == .File) {
-            var file = try dir.openFile(entry.name,.{});
-            try array_list.append(try zigimg.image.Image.fromFile(allocator,&file));
-        }
-    }
-
-    return array_list.toOwnedSlice();
-}
-
-/// transform a slice of images into textures
-pub fn sdlTexturesFromImagesAlloc(allocator : * std.mem.Allocator, renderer : * c.SDL_Renderer, images : []zigimg.Image) ! []*c.SDL_Texture{
-    var array_list = try std.ArrayList(*c.SDL_Texture).initCapacity(allocator,images.len);
-    for (images) |image| {
-        try array_list.append(try sdlTextureFromImage(renderer,image));
-    }
-    return array_list.toOwnedSlice();
-}
