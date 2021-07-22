@@ -2,7 +2,6 @@ const std = @import("std");
 const c = @import("sdl2");
 const zigimg = @import("zigimg");
 const utils = @import("utils.zig");
-const clap = @import("clap");
 
 
 /// read all images in the assets folder and render them 

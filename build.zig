@@ -17,7 +17,6 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackagePath("zigimg", "zigimg/zigimg.zig");
-    exe.addPackagePath("clap", "zig-clap/clap.zig");
     exe.install();
 
     sdk.link(exe, .dynamic);
