@@ -1,4 +1,4 @@
-const c = @import("sdl2");
+const SDL = @import("sdl2");
 const std = @import("std");
 const zigimg = @import("zigimg");
 const Allocator = std.mem.Allocator;
@@ -10,13 +10,9 @@ const Allocator = std.mem.Allocator;
 /// * `image`: the image. This must have either 24 bit RGB color storage or 32bit ARGB
 /// # Returns
 /// An SDL Texture. The texture must be destroyed by the caller to free its memory.
-pub fn sdlTextureFromImage(renderer: * c.SDL_Renderer, image : zigimg.image.Image) ! *c.SDL_Texture {
+pub fn sdlTextureFromImage(renderer: SDL.Renderer, image : zigimg.image.Image) !SDL.Texture {
     
     const pxinfo = try PixelInfo.from(image);
-    // if I don't do the trick with breaking inside the switch,
-    // then it says, the return value of the switch is ignored,
-    // which seems strange to me...    
-    // TODO: ask about this on the discord... 
     const data : *c_void = blk: {if (image.pixels) |storage| {
         switch(storage) {
             .Argb32 => |argb32| break :blk @ptrCast(*c_void,argb32.ptr),
@@ -27,7 +23,8 @@ pub fn sdlTextureFromImage(renderer: * c.SDL_Renderer, image : zigimg.image.Imag
         return error.EmptyColorStorage;
     }};
 
-    const surface =  c.SDL_CreateRGBSurfaceFrom(
+
+    const surfaceptr =  SDL.c.SDL_CreateRGBSurfaceFrom(
         data,
         @intCast(c_int,image.width),
         @intCast(c_int,image.height),
@@ -37,17 +34,14 @@ pub fn sdlTextureFromImage(renderer: * c.SDL_Renderer, image : zigimg.image.Imag
         pxinfo.pixelmask.green,
         pxinfo.pixelmask.blue,
         pxinfo.pixelmask.alpha);
-    if(surface == null) {
+    if(surfaceptr == null) {
         return error.CreateRgbSurface;
     }
-    defer c.SDL_FreeSurface(surface);
 
-    var texture = c.SDL_CreateTextureFromSurface(renderer,surface);
-    if (texture) |non_null_texture| {
-        return non_null_texture;
-    } else {
-        return error.CreateTexture;
-    }
+    const surface = SDL.Surface{.ptr = surfaceptr};
+    defer surface.destroy();
+
+    return try SDL.createTextureFromSurface(renderer, surface);
 }
 
 /// a helper structure that contains some info about the pixel layout

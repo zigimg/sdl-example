@@ -21,7 +21,7 @@ pub fn build(b: *std.build.Builder) void {
 
     sdk.link(exe, .dynamic);
 
-    exe.addPackage(sdk.getNativePackage("sdl2"));
+    exe.addPackage(sdk.getWrapperPackage("sdl2"));
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
