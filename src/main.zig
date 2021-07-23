@@ -4,11 +4,11 @@ const zigimg = @import("zigimg");
 const utils = @import("utils.zig");
 
 
-//TODO
-//Use the zig style wrapper API for the SDL, since that also provides errors
-
-/// read all images in the assets folder and render them 
-/// on a square raster. The images will be stretched/squeezed to fit the raster.
+/// # Usage
+/// Specify the relative path to an image from the command line as an argument to this executable.
+/// This image will be displayed.
+/// # Example
+/// `zig build run -- assets/logo.bmp`
 pub fn main() anyerror!void {
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -19,9 +19,6 @@ pub fn main() anyerror!void {
     _= c.SDL_Init(c.SDL_INIT_VIDEO);
     defer c.SDL_Quit();
 
-
-    //TODO
-    //FACTOR OUT THE CODE OF GETTING THE IMAGE INTO ITS OWN FUNCTION IN UTIL
     var file = try utils.fileFromProcessArgs(allocator);
 
     const img = try zigimg.image.Image.fromFile(allocator,&file);
@@ -38,7 +35,6 @@ pub fn main() anyerror!void {
 
     var texture = try utils.sdlTextureFromImage(renderer, img);
     var destination_rect = c.SDL_Rect{.x = 0, .y = 0, .w = width, .h = height};
-
 
     _ = c.SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x80, 0x00);
     _ = c.SDL_RenderClear(renderer);
