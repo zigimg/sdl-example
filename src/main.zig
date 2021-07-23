@@ -4,6 +4,9 @@ const zigimg = @import("zigimg");
 const utils = @import("utils.zig");
 
 
+//TODO
+//Use the zig style wrapper API for the SDL, since that also provides errors
+
 /// read all images in the assets folder and render them 
 /// on a square raster. The images will be stretched/squeezed to fit the raster.
 pub fn main() anyerror!void {
@@ -17,25 +20,10 @@ pub fn main() anyerror!void {
     defer c.SDL_Quit();
 
 
-    std.log.info("Command line arguments:",.{});
-    var iter = std.process.args();
+    //TODO
+    //FACTOR OUT THE CODE OF GETTING THE IMAGE INTO ITS OWN FUNCTION IN UTIL
+    var file = try utils.fileFromProcessArgs(allocator);
 
-    const first = iter.next(allocator); //first argument is the name of the executable. Throw that away.
-    if(first) |exe_name_or_error|{
-        allocator.free(try exe_name_or_error);
-    }
-
-    var image_filename :[:0]u8= undefined;
-    if(iter.next(allocator)) |arg_or_error| {
-        image_filename = try arg_or_error;
-    } else {
-        std.log.err("Expected 1 argument, found 0. Specify the relative path of the image to display as the first argument!", .{});
-        return error.NoImageSpecified;
-    }
-    defer allocator.free(image_filename);
-    std.log.info("Trying to open image \'{s}\'", .{image_filename});
-
-    var file = try std.fs.cwd().openFile(image_filename, .{});
     const img = try zigimg.image.Image.fromFile(allocator,&file);
     defer img.deinit();
 
@@ -54,8 +42,6 @@ pub fn main() anyerror!void {
 
     _ = c.SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0x80, 0x00);
     _ = c.SDL_RenderClear(renderer);
-
-
     _ = c.SDL_RenderCopy(renderer, texture,null,&destination_rect);
     c.SDL_RenderPresent(renderer);
 

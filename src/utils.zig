@@ -3,6 +3,13 @@ const std = @import("std");
 const zigimg = @import("zigimg");
 const Allocator = std.mem.Allocator;
 
+/// Convert a zigimg.Image into an SDL Texture
+/// # Arguments
+/// * `renderer`: the renderer onto which to generate the texture.
+/// Use the same renderer to display that texture.
+/// * `image`: the image. This must have either 24 bit RGB color storage or 32bit ARGB
+/// # Returns
+/// An SDL Texture. The texture must be destroyed by the caller to free its memory.
 pub fn sdlTextureFromImage(renderer: * c.SDL_Renderer, image : zigimg.image.Image) ! *c.SDL_Texture {
     
     const pxinfo = try PixelInfo.from(image);
@@ -70,7 +77,7 @@ const PixelInfo = struct {
 
 };
 
-// helper structure for getting the pixelmasks out of an image
+/// helper structure for getting the pixelmasks out of an image
 const PixelMask = struct {
     red : u32,
     green : u32,
@@ -98,3 +105,24 @@ const PixelMask = struct {
         }
     }
 };
+
+pub fn fileFromProcessArgs(allocator : *std.mem.Allocator) !std.fs.File {
+    var iter = std.process.args();
+
+    const first = iter.next(allocator); //first argument is the name of the executable. Throw that away.
+    if(first) |exe_name_or_error| {
+        allocator.free(try exe_name_or_error);
+    }
+
+    var image_filename :[:0]u8= undefined;
+    if(iter.next(allocator)) |arg_or_error| {
+        image_filename = try arg_or_error;
+    } else {
+        std.log.err("Expected 1 argument, found 0! Specify the relative path of the image to display as the argument to this executable.", .{});
+        return error.NoImageSpecified;
+    }
+    defer allocator.free(image_filename);
+    std.log.info("Trying to open image file \'{s}\'", .{image_filename});
+
+    return try std.fs.cwd().openFile(image_filename, .{});
+}
