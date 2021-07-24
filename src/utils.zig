@@ -45,28 +45,26 @@ pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.image.Image) !S
 /// # Returns
 /// An SDL Texture. The texture must be destroyed by the caller to free its memory.
 pub fn sdlTextureFromImageUsingColorIterator(renderer: SDL.Renderer, image: zigimg.image.Image) !SDL.Texture {
-    
     const surface_ptr = SDL.c.SDL_CreateRGBSurfaceWithFormat(0, @intCast(c_int, image.width), @intCast(c_int, image.height), 32, SDL.c.SDL_PIXELFORMAT_RGBA8888);
     if (surface_ptr == null) {
         return error.CreateRgbSurface;
     }
-    const surface = SDL.Surface{.ptr = surface_ptr};
+    const surface = SDL.Surface{ .ptr = surface_ptr };
     defer surface.destroy();
 
     var color_iter = image.iterator();
-    
-    
+
     if (surface.ptr.pixels == null) {
         return error.NullPixelSurface;
     }
     var pixels = @ptrCast([*]u8, surface.ptr.pixels);
-    var offset : usize = 0;
-    
-    while(color_iter.next()) |fcol| {
-        pixels[offset]   = @floatToInt(u8, @round(fcol.A*255));
-        pixels[offset+1] = @floatToInt(u8, @round(fcol.B*255));
-        pixels[offset+2] = @floatToInt(u8, @round(fcol.G*255));
-        pixels[offset+3] = @floatToInt(u8, @round(fcol.R*255));
+    var offset: usize = 0;
+
+    while (color_iter.next()) |fcol| {
+        pixels[offset] = @floatToInt(u8, @round(fcol.A * 255));
+        pixels[offset + 1] = @floatToInt(u8, @round(fcol.B * 255));
+        pixels[offset + 2] = @floatToInt(u8, @round(fcol.G * 255));
+        pixels[offset + 3] = @floatToInt(u8, @round(fcol.R * 255));
         offset += 4;
     }
 
@@ -124,7 +122,24 @@ const PixelMask = struct {
     }
 };
 
-pub fn fileFromProcessArgs(allocator: *std.mem.Allocator) !std.fs.File {
+/// the program configuration
+pub const ProgramConfig = struct {
+    /// the image file we want to display with sdl
+    image_file: std.fs.File,
+    /// the conversion strategy we want to apply to get from image data to a texture
+    image_conversion: Image2TexConversion,
+};
+
+/// the conversion algorithm
+pub const Image2TexConversion = enum {
+    /// use the color storage of the image directly
+    buffer,
+    /// use the color iterator
+    color_iterator,
+};
+
+/// a quick&dirty command line parser
+pub fn parseProcessArgs(allocator: *std.mem.Allocator) !ProgramConfig {
     var iter = std.process.args();
 
     const first = iter.next(allocator); //first argument is the name of the executable. Throw that away.
@@ -132,15 +147,41 @@ pub fn fileFromProcessArgs(allocator: *std.mem.Allocator) !std.fs.File {
         allocator.free(try exe_name_or_error);
     }
 
-    var image_filename: [:0]u8 = undefined;
+    var first_argument: [:0]u8 = undefined;
     if (iter.next(allocator)) |arg_or_error| {
-        image_filename = try arg_or_error;
+        first_argument = try arg_or_error;
     } else {
-        std.log.err("Expected 1 argument, found 0! Specify the relative path of the image to display as the argument to this executable.", .{});
-        return error.NoImageSpecified;
+        std.log.err("Unknown or too few command line arguments!", .{});
+        printUsage();
+        return error.UnknownCommandLine;
     }
-    defer allocator.free(image_filename);
-    std.log.info("Trying to open image file \'{s}\'", .{image_filename});
+    defer allocator.free(first_argument);
 
-    return try std.fs.cwd().openFile(image_filename, .{});
+    var file: std.fs.File = undefined;
+    var conversion: Image2TexConversion = Image2TexConversion.buffer;
+    if (std.ascii.eqlIgnoreCase(first_argument, "--color-iter")) {
+        var second_argument: [:0]u8 = undefined;
+        if (iter.next(allocator)) |arg_or_error| {
+            second_argument = try arg_or_error;
+        } else {
+            std.log.err("Expected image file name!", .{});
+            printUsage();
+            return error.NoImageSpecified;
+        }
+        defer allocator.free(second_argument);
+        file = try std.fs.cwd().openFile(second_argument, .{});
+        conversion = Image2TexConversion.color_iterator;
+        std.log.info("Using color iterator for conversion", .{});
+    } else {
+        file = try std.fs.cwd().openFile(first_argument, .{});
+    }
+
+    return ProgramConfig{
+        .image_file = file,
+        .image_conversion = conversion,
+    };
+}
+
+pub fn printUsage() void {
+    std.log.info("Usage: sdl-example [--color-iter] image\n\timage\t\trelative path to an image file which will be displayed\n\t--color-iter\tspecify that the color iterator should be used to convert the image to a texture.", .{});
 }
