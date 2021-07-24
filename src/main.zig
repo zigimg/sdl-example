@@ -38,11 +38,11 @@ pub fn main() anyerror!void {
 
     // allow user to decide wheter the color iterator or should be used for conversion of if the image buffer should be
     // directly copied into a surface and then into a texture.
-    var texture = switch(program_config.image_conversion) {
-        .buffer =>  try utils.sdlTextureFromImage(renderer, img),
+    var texture = switch (program_config.image_conversion) {
+        .buffer => try utils.sdlTextureFromImage(renderer, img),
         .color_iterator => try utils.sdlTextureFromImageUsingColorIterator(renderer, img),
     };
-    
+
     try renderer.setColor(SDL.Color{ .r = 128, .g = 128, .b = 128, .a = 0 });
     try renderer.clear();
     try renderer.copy(texture, null, dst_rect);
