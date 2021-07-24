@@ -4,6 +4,7 @@ const zigimg = @import("zigimg");
 const utils = @import("utils.zig");
 
 
+
 /// # Usage
 /// Specify the relative path to an image from the command line as an argument to this executable.
 /// This image will be displayed.
@@ -31,7 +32,7 @@ pub fn main() anyerror!void {
 
     const dst_rect = SDL.Rectangle{.x=0, .y=0, .width = @intCast(c_int, img.width),  .height = @intCast(c_int, img.height)};
 
-    var texture = try utils.sdlTextureFromImage(renderer, img);
+    var texture = try utils.sdlTextureFromImageUsingColorIterator(renderer, img);
 
     try renderer.setColor(SDL.Color{.r=128,.g=128,.b=128,.a=0});
     try renderer.clear();
