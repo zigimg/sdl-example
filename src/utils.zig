@@ -11,11 +11,13 @@ const Allocator = std.mem.Allocator;
 /// # Returns
 /// An SDL Texture. The texture must be destroyed by the caller to free its memory.
 pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.image.Image) !SDL.Texture {
-    const pxinfo = try PixelInfo.from(image);
+    const pixel_info = try PixelInfo.from(image);
     const data: *c_void = blk: {
         if (image.pixels) |storage| {
             switch (storage) {
-                .Argb32 => |argb32| break :blk @ptrCast(*c_void, argb32.ptr),
+                .Bgr24 => |bgr24| break :blk @ptrCast(*c_void, bgr24.ptr),
+                .Bgra32 => |bgra32| break :blk @ptrCast(*c_void, bgra32.ptr),
+                .Rgba32 => |rgba32| break :blk @ptrCast(*c_void, rgba32.ptr),
                 .Rgb24 => |rgb24| break :blk @ptrCast(*c_void, rgb24.ptr),
                 else => return error.InvalidColorStorage,
             }
@@ -24,12 +26,12 @@ pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.image.Image) !S
         }
     };
 
-    const surfaceptr = SDL.c.SDL_CreateRGBSurfaceFrom(data, @intCast(c_int, image.width), @intCast(c_int, image.height), pxinfo.bits, pxinfo.pitch, pxinfo.pixelmask.red, pxinfo.pixelmask.green, pxinfo.pixelmask.blue, pxinfo.pixelmask.alpha);
-    if (surfaceptr == null) {
+    const surface_ptr = SDL.c.SDL_CreateRGBSurfaceFrom(data, @intCast(c_int, image.width), @intCast(c_int, image.height), pixel_info.bits, pixel_info.pitch, pixel_info.pixelmask.red, pixel_info.pixelmask.green, pixel_info.pixelmask.blue, pixel_info.pixelmask.alpha);
+    if (surface_ptr == null) {
         return error.CreateRgbSurface;
     }
 
-    const surface = SDL.Surface{ .ptr = surfaceptr };
+    const surface = SDL.Surface{ .ptr = surface_ptr };
     defer surface.destroy();
 
     return try SDL.createTextureFromSurface(renderer, surface);
@@ -85,8 +87,10 @@ const PixelInfo = struct {
     pub fn from(image: zigimg.image.Image) !Self {
         const Sizes = struct { bits: c_int, pitch: c_int };
         const sizes: Sizes = switch (image.pixels orelse return error.EmptyColorStorage) {
-            .Argb32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
+            .Bgra32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
+            .Rgba32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
             .Rgb24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
+            .Bgr24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
             else => return error.InvalidColorStorage,
         };
         return Self{ .bits = @intCast(c_int, sizes.bits), .pitch = @intCast(c_int, sizes.pitch), .pixelmask = try PixelMask.fromColorStorage(image.pixels orelse return error.EmptyColorStorage) };
@@ -102,19 +106,31 @@ const PixelMask = struct {
 
     const Self = @This();
     /// construct a pixelmask given the colorstorage.
-    /// *Attention*: right now only works for 24bit RGB and 32bit ARGB storage.
+    /// *Attention*: right now only works for 24-bit RGB, BGR and 32-bit RGBA,BGRA
     pub fn fromColorStorage(storage: zigimg.color.ColorStorage) !Self {
         switch (storage) {
-            .Argb32 => return Self{
+            .Bgra32 => return Self{
                 .red = 0x00ff0000,
                 .green = 0x0000ff00,
                 .blue = 0x000000ff,
                 .alpha = 0xff000000,
             },
-            .Rgb24 => return Self{
+            .Rgba32 => return Self{
+                .red = 0x000000ff,
+                .green = 0x0000ff00,
+                .blue = 0x00ff0000,
+                .alpha = 0xff000000,
+            },
+            .Bgr24 => return Self{
                 .red = 0xff0000,
                 .green = 0x00ff00,
                 .blue = 0x0000ff,
+                .alpha = 0,
+            },
+            .Rgb24 => return Self{
+                .red = 0x0000ff,
+                .green = 0x00ff00,
+                .blue = 0xff0000,
                 .alpha = 0,
             },
             else => return error.InvalidColorStorage,
