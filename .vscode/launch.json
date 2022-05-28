@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/sdl-example.exe",
+            "args": [
+                "assets/png_image.png"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "Build"
+        },
+        {
+            "name": "Debug (UNIX)",
+            "type": "gdb",
+            "request": "launch",
+            "target": "${workspaceFolder}/zig-out/bin/sdl-example",
+            "arguments": "assets/png_image.png",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build"
+        }
+    ]
+}

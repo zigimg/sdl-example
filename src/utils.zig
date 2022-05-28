@@ -12,13 +12,13 @@ const Allocator = std.mem.Allocator;
 /// An SDL Texture. The texture must be destroyed by the caller to free its memory.
 pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.image.Image) !SDL.Texture {
     const pixel_info = try PixelInfo.from(image);
-    const data: *c_void = blk: {
+    const data: *anyopaque = blk: {
         if (image.pixels) |storage| {
             switch (storage) {
-                .Bgr24 => |bgr24| break :blk @ptrCast(*c_void, bgr24.ptr),
-                .Bgra32 => |bgra32| break :blk @ptrCast(*c_void, bgra32.ptr),
-                .Rgba32 => |rgba32| break :blk @ptrCast(*c_void, rgba32.ptr),
-                .Rgb24 => |rgb24| break :blk @ptrCast(*c_void, rgb24.ptr),
+                .bgr24 => |bgr24| break :blk @ptrCast(*anyopaque, bgr24.ptr),
+                .bgra32 => |bgra32| break :blk @ptrCast(*anyopaque, bgra32.ptr),
+                .rgba32 => |rgba32| break :blk @ptrCast(*anyopaque, rgba32.ptr),
+                .rgb24 => |rgb24| break :blk @ptrCast(*anyopaque, rgb24.ptr),
                 else => return error.InvalidColorStorage,
             }
         } else {
@@ -87,13 +87,13 @@ const PixelInfo = struct {
     pub fn from(image: zigimg.image.Image) !Self {
         const Sizes = struct { bits: c_int, pitch: c_int };
         const sizes: Sizes = switch (image.pixels orelse return error.EmptyColorStorage) {
-            .Bgra32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
-            .Rgba32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
-            .Rgb24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
-            .Bgr24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
+            .bgra32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
+            .rgba32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
+            .rgb24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
+            .bgr24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
             else => return error.InvalidColorStorage,
         };
-        return Self{ .bits = @intCast(c_int, sizes.bits), .pitch = @intCast(c_int, sizes.pitch), .pixelmask = try PixelMask.fromColorStorage(image.pixels orelse return error.EmptyColorStorage) };
+        return Self{ .bits = @intCast(c_int, sizes.bits), .pitch = @intCast(c_int, sizes.pitch), .pixelmask = try PixelMask.fromPixelStorage(image.pixels orelse return error.EmptyColorStorage) };
     }
 };
 
@@ -107,27 +107,27 @@ const PixelMask = struct {
     const Self = @This();
     /// construct a pixelmask given the colorstorage.
     /// *Attention*: right now only works for 24-bit RGB, BGR and 32-bit RGBA,BGRA
-    pub fn fromColorStorage(storage: zigimg.color.ColorStorage) !Self {
+    pub fn fromPixelStorage(storage: zigimg.color.PixelStorage) !Self {
         switch (storage) {
-            .Bgra32 => return Self{
+            .bgra32 => return Self{
                 .red = 0x00ff0000,
                 .green = 0x0000ff00,
                 .blue = 0x000000ff,
                 .alpha = 0xff000000,
             },
-            .Rgba32 => return Self{
+            .rgba32 => return Self{
                 .red = 0x000000ff,
                 .green = 0x0000ff00,
                 .blue = 0x00ff0000,
                 .alpha = 0xff000000,
             },
-            .Bgr24 => return Self{
+            .bgr24 => return Self{
                 .red = 0xff0000,
                 .green = 0x00ff00,
                 .blue = 0x0000ff,
                 .alpha = 0,
             },
-            .Rgb24 => return Self{
+            .rgb24 => return Self{
                 .red = 0x0000ff,
                 .green = 0x00ff00,
                 .blue = 0xff0000,
@@ -155,47 +155,38 @@ pub const Image2TexConversion = enum {
 };
 
 /// a quick&dirty command line parser
-pub fn parseProcessArgs(allocator: *std.mem.Allocator) !ProgramConfig {
-    var iter = std.process.args();
+pub fn parseProcessArgs(allocator: std.mem.Allocator) !ProgramConfig {
+    var iter = try std.process.argsWithAllocator(allocator);
+    defer iter.deinit();
 
-    const first = iter.next(allocator); //first argument is the name of the executable. Throw that away.
-    if (first) |exe_name_or_error| {
-        allocator.free(try exe_name_or_error);
-    }
+    _ = iter.next(); //first argument is the name of the executable. Throw that away.
 
-    var first_argument: [:0]u8 = undefined;
-    if (iter.next(allocator)) |arg_or_error| {
-        first_argument = try arg_or_error;
+    if (iter.next()) |first_argument| {
+        var file: std.fs.File = undefined;
+        var conversion = Image2TexConversion.buffer;
+        if (std.ascii.eqlIgnoreCase(first_argument, "--color-iter")) {
+            if (iter.next()) |second_argument| {
+                file = try std.fs.cwd().openFile(second_argument, .{});
+                conversion = Image2TexConversion.color_iterator;
+                std.log.info("Using color iterator for conversion", .{});
+            } else {
+                std.log.err("Expected image file name!", .{});
+                printUsage();
+                return error.NoImageSpecified;
+            }
+        } else {
+            file = try std.fs.cwd().openFile(first_argument, .{});
+        }
+
+        return ProgramConfig{
+            .image_file = file,
+            .image_conversion = conversion,
+        };
     } else {
         std.log.err("Unknown or too few command line arguments!", .{});
         printUsage();
         return error.UnknownCommandLine;
     }
-    defer allocator.free(first_argument);
-
-    var file: std.fs.File = undefined;
-    var conversion: Image2TexConversion = Image2TexConversion.buffer;
-    if (std.ascii.eqlIgnoreCase(first_argument, "--color-iter")) {
-        var second_argument: [:0]u8 = undefined;
-        if (iter.next(allocator)) |arg_or_error| {
-            second_argument = try arg_or_error;
-        } else {
-            std.log.err("Expected image file name!", .{});
-            printUsage();
-            return error.NoImageSpecified;
-        }
-        defer allocator.free(second_argument);
-        file = try std.fs.cwd().openFile(second_argument, .{});
-        conversion = Image2TexConversion.color_iterator;
-        std.log.info("Using color iterator for conversion", .{});
-    } else {
-        file = try std.fs.cwd().openFile(first_argument, .{});
-    }
-
-    return ProgramConfig{
-        .image_file = file,
-        .image_conversion = conversion,
-    };
 }
 
 pub fn printUsage() void {
