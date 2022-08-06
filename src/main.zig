@@ -25,10 +25,10 @@ pub fn main() anyerror!void {
 
     var program_config = try utils.parseProcessArgs(allocator);
 
-    const img = try zigimg.image.Image.fromFile(allocator, &program_config.image_file);
+    var img = try zigimg.Image.fromFile(allocator, &program_config.image_file);
     defer img.deinit();
 
-    var window = try SDL.createWindow("Example: zigimg with SDL2", .{ .centered = {} }, .{ .centered = {} }, img.width, img.height, .{ .shown = true });
+    var window = try SDL.createWindow("Example: zigimg with SDL2", .{ .centered = {} }, .{ .centered = {} }, img.width, img.height, .{ .vis = .shown });
     defer window.destroy();
 
     var renderer = try SDL.createRenderer(window, null, .{});
