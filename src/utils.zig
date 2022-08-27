@@ -27,7 +27,7 @@ pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.Image) !SDL.Tex
         return error.CreateRgbSurface;
     }
 
-    const surface = SDL.Surface{ .ptr = surface_ptr };
+    const surface = SDL.Surface{ .ptr = surface_ptr.? };
     defer surface.destroy();
 
     return try SDL.createTextureFromSurface(renderer, surface);
@@ -47,7 +47,7 @@ pub fn sdlTextureFromImageUsingColorIterator(renderer: SDL.Renderer, image: zigi
     if (surface_ptr == null) {
         return error.CreateRgbSurface;
     }
-    const surface = SDL.Surface{ .ptr = surface_ptr };
+    const surface = SDL.Surface{ .ptr = surface_ptr.? };
     defer surface.destroy();
 
     var color_iter = image.iterator();
