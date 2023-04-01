@@ -7,21 +7,29 @@ pub fn build(b: *std.build.Builder) void {
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-    const sdk = sdl_sdk.init(b);
+    const sdk = sdl_sdk.init(b, null);
 
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
 
-    const exe = b.addExecutable("sdl-example", "src/main.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.addPackagePath("zigimg", "zigimg/zigimg.zig");
-    exe.install();
+    const zigimg_dep = b.dependency("zigimg", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
+    const exe = b.addExecutable(.{
+        .name = "sdl-example",
+        .root_source_file = .{
+            .path = "src/main.zig",
+        },
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.addModule("zigimg", zigimg_dep.module("zigimg"));
+    exe.addModule("sdl2", sdk.getWrapperModule());
     sdk.link(exe, .dynamic);
-
-    exe.addPackage(sdk.getWrapperPackage("sdl2"));
+    exe.install();
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
