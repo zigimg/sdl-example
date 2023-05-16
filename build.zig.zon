@@ -3,8 +3,8 @@
     .version = "0.1.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "https://github.com/zigimg/zigimg/archive/6d0f7d71a49b19564cf70f07577670f712cfc353.tar.gz",
-            .hash = "12205b3e663cbf2666d7ddb35871967adfd0e7e3f7023c39ff8e08c71df48fb6f3e3",
+            .url = "https://github.com/zigimg/zigimg/archive/b64004bfacd59489bcc4420afdf59fabc3eb7c04.tar.gz",
+            .hash = "1220336370d55d863646a7c26dc8dfe6da77e1aac5243342f392960293dce7069026",
         },
     },
 }
