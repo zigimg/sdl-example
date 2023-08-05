@@ -14,15 +14,15 @@ pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.Image) !SDL.Tex
     const pixel_info = try PixelInfo.from(image);
     const data: *anyopaque = blk: {
         switch (image.pixels) {
-            .bgr24 => |bgr24| break :blk @ptrCast(*anyopaque, bgr24.ptr),
-            .bgra32 => |bgra32| break :blk @ptrCast(*anyopaque, bgra32.ptr),
-            .rgba32 => |rgba32| break :blk @ptrCast(*anyopaque, rgba32.ptr),
-            .rgb24 => |rgb24| break :blk @ptrCast(*anyopaque, rgb24.ptr),
+            .bgr24 => |bgr24| break :blk @as(*anyopaque, @ptrCast(bgr24.ptr)),
+            .bgra32 => |bgra32| break :blk @as(*anyopaque, @ptrCast(bgra32.ptr)),
+            .rgba32 => |rgba32| break :blk @as(*anyopaque, @ptrCast(rgba32.ptr)),
+            .rgb24 => |rgb24| break :blk @as(*anyopaque, @ptrCast(rgb24.ptr)),
             else => return error.InvalidColorStorage,
         }
     };
 
-    const surface_ptr = SDL.c.SDL_CreateRGBSurfaceFrom(data, @intCast(c_int, image.width), @intCast(c_int, image.height), pixel_info.bits, pixel_info.pitch, pixel_info.pixelmask.red, pixel_info.pixelmask.green, pixel_info.pixelmask.blue, pixel_info.pixelmask.alpha);
+    const surface_ptr = SDL.c.SDL_CreateRGBSurfaceFrom(data, @as(c_int, @intCast(image.width)), @as(c_int, @intCast(image.height)), pixel_info.bits, pixel_info.pitch, pixel_info.pixelmask.red, pixel_info.pixelmask.green, pixel_info.pixelmask.blue, pixel_info.pixelmask.alpha);
     if (surface_ptr == null) {
         return error.CreateRgbSurface;
     }
@@ -43,7 +43,7 @@ pub fn sdlTextureFromImage(renderer: SDL.Renderer, image: zigimg.Image) !SDL.Tex
 /// # Returns
 /// An SDL Texture. The texture must be destroyed by the caller to free its memory.
 pub fn sdlTextureFromImageUsingColorIterator(renderer: SDL.Renderer, image: zigimg.Image) !SDL.Texture {
-    const surface_ptr = SDL.c.SDL_CreateRGBSurfaceWithFormat(0, @intCast(c_int, image.width), @intCast(c_int, image.height), 32, SDL.c.SDL_PIXELFORMAT_RGBA8888);
+    const surface_ptr = SDL.c.SDL_CreateRGBSurfaceWithFormat(0, @as(c_int, @intCast(image.width)), @as(c_int, @intCast(image.height)), 32, SDL.c.SDL_PIXELFORMAT_RGBA8888);
     if (surface_ptr == null) {
         return error.CreateRgbSurface;
     }
@@ -52,14 +52,14 @@ pub fn sdlTextureFromImageUsingColorIterator(renderer: SDL.Renderer, image: zigi
 
     var color_iter = image.iterator();
 
-    var pixels = @ptrCast([*]u8, surface.ptr.pixels);
+    var pixels = @as([*]u8, @ptrCast(surface.ptr.pixels));
     var offset: usize = 0;
 
     while (color_iter.next()) |fcol| {
-        pixels[offset] = @floatToInt(u8, @round(fcol.a * 255));
-        pixels[offset + 1] = @floatToInt(u8, @round(fcol.b * 255));
-        pixels[offset + 2] = @floatToInt(u8, @round(fcol.g * 255));
-        pixels[offset + 3] = @floatToInt(u8, @round(fcol.r * 255));
+        pixels[offset] = @as(u8, @intFromFloat(@round(fcol.a * 255)));
+        pixels[offset + 1] = @as(u8, @intFromFloat(@round(fcol.b * 255)));
+        pixels[offset + 2] = @as(u8, @intFromFloat(@round(fcol.g * 255)));
+        pixels[offset + 3] = @as(u8, @intFromFloat(@round(fcol.r * 255)));
         offset += 4;
     }
 
@@ -80,13 +80,13 @@ const PixelInfo = struct {
     pub fn from(image: zigimg.Image) !Self {
         const Sizes = struct { bits: c_int, pitch: c_int };
         const sizes: Sizes = switch (image.pixels) {
-            .bgra32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
-            .rgba32 => Sizes{ .bits = 32, .pitch = 4 * @intCast(c_int, image.width) },
-            .rgb24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
-            .bgr24 => Sizes{ .bits = 24, .pitch = 3 * @intCast(c_int, image.width) },
+            .bgra32 => Sizes{ .bits = 32, .pitch = 4 * @as(c_int, @intCast(image.width)) },
+            .rgba32 => Sizes{ .bits = 32, .pitch = 4 * @as(c_int, @intCast(image.width)) },
+            .rgb24 => Sizes{ .bits = 24, .pitch = 3 * @as(c_int, @intCast(image.width)) },
+            .bgr24 => Sizes{ .bits = 24, .pitch = 3 * @as(c_int, @intCast(image.width)) },
             else => return error.InvalidColorStorage,
         };
-        return Self{ .bits = @intCast(c_int, sizes.bits), .pitch = @intCast(c_int, sizes.pitch), .pixelmask = try PixelMask.fromPixelStorage(image.pixels) };
+        return Self{ .bits = @as(c_int, @intCast(sizes.bits)), .pitch = @as(c_int, @intCast(sizes.pitch)), .pixelmask = try PixelMask.fromPixelStorage(image.pixels) };
     }
 };
 

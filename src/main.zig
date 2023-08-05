@@ -34,7 +34,7 @@ pub fn main() anyerror!void {
     var renderer = try SDL.createRenderer(window, null, .{});
     defer renderer.destroy();
 
-    const dst_rect = SDL.Rectangle{ .x = 0, .y = 0, .width = @intCast(c_int, img.width), .height = @intCast(c_int, img.height) };
+    const dst_rect = SDL.Rectangle{ .x = 0, .y = 0, .width = @intCast(img.width), .height = @intCast(img.height) };
 
     // allow user to decide wheter the color iterator or should be used for conversion of if the image buffer should be
     // directly copied into a surface and then into a texture.
