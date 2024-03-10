@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl_sdk = @import("SDL.zig/Sdk.zig");
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -26,8 +26,8 @@ pub fn build(b: *std.build.Builder) void {
         .target = target,
         .optimize = optimize,
     });
-    exe.addModule("zigimg", zigimg_dep.module("zigimg"));
-    exe.addModule("sdl2", sdk.getWrapperModule());
+    exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
+    exe.root_module.addImport("sdl2", sdk.getWrapperModule());
     sdk.link(exe, .dynamic);
     b.installArtifact(exe);
 

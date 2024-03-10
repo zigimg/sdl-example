@@ -18,7 +18,7 @@ const utils = @import("utils.zig");
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-    var allocator: std.mem.Allocator = gpa.allocator();
+    const allocator: std.mem.Allocator = gpa.allocator();
 
     try SDL.init(.{ .video = true, .events = true, .audio = false });
     defer SDL.quit();
@@ -38,7 +38,7 @@ pub fn main() anyerror!void {
 
     // allow user to decide wheter the color iterator or should be used for conversion of if the image buffer should be
     // directly copied into a surface and then into a texture.
-    var texture = switch (program_config.image_conversion) {
+    const texture = switch (program_config.image_conversion) {
         .buffer => try utils.sdlTextureFromImage(renderer, img),
         .color_iterator => try utils.sdlTextureFromImageUsingColorIterator(renderer, img),
     };
