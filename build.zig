@@ -1,5 +1,5 @@
 const std = @import("std");
-const sdl_sdk = @import("SDL.zig/Sdk.zig");
+const sdl2 = @import("sdl2");
 
 pub fn build(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
@@ -7,7 +7,10 @@ pub fn build(b: *std.Build) void {
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-    const sdk = sdl_sdk.init(b, null);
+    const sdl_sdk = sdl2.init(b, .{
+        .dep_name = "sdl2",
+        .maybe_config_path = b.pathFromRoot(".build_config/sdl.json"),
+    });
 
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
@@ -20,15 +23,13 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "sdl-example",
-        .root_source_file = .{
-            .path = "src/main.zig",
-        },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
     exe.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
-    exe.root_module.addImport("sdl2", sdk.getWrapperModule());
-    sdk.link(exe, .dynamic);
+    exe.root_module.addImport("sdl2", sdl_sdk.getWrapperModule());
+    sdl_sdk.link(exe, .dynamic, .SDL2);
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

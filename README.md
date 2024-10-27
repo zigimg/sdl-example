@@ -3,10 +3,10 @@ Example usage of zigimg using SDL2. This library uses [SDL.zig](https://github.c
 
 ## Build
 
-This example uses zig nominated [2024.3.0-mach](https://machengine.org/about/nominated-zig/). To install using [`zigup`](https://github.com/marler8997/zigup):
+This example uses zig nominated [2024.10.0-mach](https://machengine.org/about/nominated-zig/). To install using [`zigup`](https://github.com/marler8997/zigup):
 
 ```sh
-zigup 0.12.0-dev.3180+83e578a18
+zigup 0.14.0-dev.1911+3bf89f55c
 ```
 
 Then do
